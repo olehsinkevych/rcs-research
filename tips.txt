@@ -1,0 +1,3 @@
+﻿pip install virtualenv      - install initial virtual environment
+virtualenv -p python3 myenv - setup virtual env with python3 version
+source/path/bin/activate    - activate virtual environment
