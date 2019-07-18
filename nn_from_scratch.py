@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import logging
 
 class Activation(object):
     @classmethod
@@ -36,8 +37,12 @@ def mse_prime(y_true, y_pred):
 class InitialLayer(object):
     def __init__(self, input_size, output_size):
         # inp size - size of inputs neurons , output size - size of output neurons
-        self.weights = np.random.randn(input_size, output_size) / np.sqrt(input_size)
-        self.bias    = np.random.randn(1, output_size) - 0.5 # 0.5 - floating value
+        try:
+            self.weights = np.random.randn(input_size, output_size) / np.sqrt(input_size)
+            self.bias    = np.random.randn(1, output_size) + 0.5 # 0.5 - floating value
+
+        except TypeError:
+            logging.error(' LOG: ... Input layer and output layer sizes should be more than 0 and not NONE')
 
     def forward_propagation(self, input_data):
         self.input  = input_data
@@ -59,8 +64,14 @@ class InitialLayer(object):
 
 class ActivationLayer(object):
     def __init__(self, activation_func, prime_activation_func):
-        self.activation       = activation_func
-        self.prime_activation = prime_activation_func
+        try:
+            self.activation       = activation_func
+            self.prime_activation = prime_activation_func
+            if (self.activation or self.prime_activation) == None:
+                raise Exception
+
+        except Exception:
+            logging.error('Please input ur activation functions, they should be defined!')
 
     def forward_propagation(self, input_data):
         self.input  = input_data
@@ -109,7 +120,11 @@ class NN (object):
                 for layer in self.layers:
                     output = layer.forward_propagation(output)
 
-                # compute loss (for display purpose only)
+                # backward propagation
+                error = self.cost_prime(y_train[j], output)
+                for layer in reversed(self.layers):
+                    error = layer.back_propagation(error, learning_rate)
+
                 err += self.cost(y_train[j], output)
 
                 # backward propagation
@@ -117,8 +132,10 @@ class NN (object):
                 for layer in reversed(self.layers):
                     error = layer.back_propagation(error, learning_rate)
 
-            # calculate average error on all samples
+                # calculate average error on all samples
             err /= sample_size
+            # calculate average error on all samples
+
             glob_err.append(err)
             print('epoch %d/%d   error=%f' % (i+1, epochs, err))
 
@@ -128,13 +145,13 @@ x_train = np.array([[[2.05, 0.330]], [[2.19, 0.5]], [[2.14, 0.65]], [[2.09, 0.13
 y_train = np.array([[[0.09]], [[0.48]], [[0.15]], [[0.1150]]])
 
 net = NN()
-net.add_layer(InitialLayer(2, 2))
+net.add_layer(InitialLayer(2, 3))
 net.add_layer(ActivationLayer(Activation.tanh, Activation.tanh_prime))
-net.add_layer(InitialLayer(2, 1))
+net.add_layer(InitialLayer(3, 1))
 net.add_layer(ActivationLayer(Activation.tanh, Activation.tanh_prime))
 # train
 net.set_cost_functions(mse, mse_prime)
-net.train(x_train, y_train, epochs=1000, learning_rate=0.1)
+net.train(x_train, y_train, 5000, learning_rate=0.1)
 # test
 out = net.predict_values(x_train)
 print(out)
@@ -147,5 +164,5 @@ myt2 = net.predict_values(trys2)
 print(myt1)
 print(myt2)
 
-plt.plot(range(1000), glob_err)
+plt.plot(range(5000), glob_err)
 plt.show()
